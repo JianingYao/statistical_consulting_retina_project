@@ -1,0 +1,133 @@
+---
+title: "preprocess"
+author: "Jianing Yao"
+date: "2023-03-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(corrplot)
+```
+
+### Step 1: read data and clean
+```{r}
+# read data
+# the spreadsheet has 19 metabolic measures and 5 retinal thickness
+data <- as.data.frame(read_excel("./Data/Sachdeva_Final_datasheet_OCT_metabolic_232023.xlsx"))
+```
+
+```{r}
+# convert id and gender to factors
+df <- data
+df$IRB <- as.factor(df$IRB)
+df$gender <- as.factor(df$gender)
+levels(df$gender) <- c("female", "male")
+```
+
+### Step 2: descriptive statistics
+```{r}
+# gender 
+table(df$gender)
+table(df$gender)/nrow(df)
+```
+
+
+## table 1: mean and sd of metabolic measures and retinal measures
+```{r}
+cols_ind <- c(4:112)
+median_data <- apply(df[, cols_ind], 2, function(x) median(x, na.rm = TRUE))
+mean_data <- apply(df[, cols_ind], 2, function(x) mean(x, na.rm = TRUE))
+sd_data <- apply(df[, cols_ind], 2, function(x) sd(x, na.rm = TRUE))
+summary <- cbind(median_data, mean_data, sd_data)
+colnames(summary) <- c("Median", "Mean", "SD")
+round(summary,2)
+```
+
+
+## histograms of independent variables (age + metabolic measures)
+
+```{r}
+colnames(df)
+indep_list <- c("age", "heart_rate","MAP","SBP","BMI","HbA1c","BUN","Cr","BUN/Cr","HDL","LDL","Triglycerides","Cholesterol","NEFA","Glucose","Ketone","Insulin","Adiponectin","Leptin","RAGE")
+for (col in indep_list) {
+  hist(df[[col]], xlab = paste(col), main = paste("Histogram of", col))
+}
+
+```
+
+
+## replace missing values in metabolic measures with median
+```{r}
+met_list <- c("heart_rate","MAP","SBP","BMI","HbA1c","BUN","Cr","BUN/Cr","HDL","LDL","Triglycerides","Cholesterol","NEFA","Glucose","Ketone","Insulin","Adiponectin","Leptin","RAGE")
+df.imp <- df
+for (col in met_list) {
+  df.imp[is.na(df.imp[[col]]), col] <- median(df.imp[[col]], na.rm = TRUE)
+}
+```
+
+
+
+
+## Pairs plot, correlations, heatmap of metabolic measures
+
+```{r}
+pairs(df.imp[met_list])
+```
+
+```{r}
+met_cor <- cor(df.imp[met_list], use = "pairwise.complete.obs")
+corrplot(met_cor, type = "upper", method = "circle")
+```
+
+
+## Correlation heatmaps for retinal measures by eye
+```{r}
+# right eye
+OD_list <- c(23:67)
+OD_cor <- cor(df.imp[OD_list], use = "pairwise.complete.obs")
+corrplot(OD_cor, type = "upper", method = "circle", tl.cex = 0.5)
+```
+
+```{r}
+# left eye
+OS_list <- c(68:112)
+OS_cor <- cor(df.imp[OS_list], use = "pairwise.complete.obs")
+corrplot(OS_cor, type = "upper", method = "circle", tl.cex = 0.5)
+```
+
+
+```{r}
+# save cleaned dataset
+write.table(df.imp, "./Data/data_cleaned.txt", sep = "\t", row.names = FALSE, col.names = TRUE)
+```
+
+
+
+
+TODO:
+1. histograms for retinal thickness 
+2. descriptive by 3 groups?
+3. missing values for metabolic measures (REPLACE WITH MEDIAN FOR NOW)
+4. A heatmap showing correlations between selected metabolic parameters and retinal thickness values in each of the anatomical locations to select predictors.  
+
+
+
+
+Questions: 
+1. gender code: which is female vs male
+
+
+
+
+
+
+
+
+
+
+
