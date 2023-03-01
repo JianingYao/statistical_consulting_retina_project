@@ -101,6 +101,10 @@ corrplot(OS_cor, type = "upper", method = "circle", tl.cex = 0.5)
 ```
 
 
+```{r}
+# save cleaned dataset
+write.table(df.imp, "./Data/data_cleaned.txt", sep = "\t", row.names = FALSE, col.names = TRUE)
+```
 
 
 
