@@ -1,0 +1,46 @@
+---
+title: "preprocess"
+author: "Jianing Yao"
+date: "2023-03-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Step 1: read data and clean
+```{r}
+# read data
+# the spreadsheet has 19 metabolic measures and 5 retinal thickness
+library("readxl")
+data <- as.data.frame(read_excel("./Data/Sachdeva_Final_datasheet_OCT_metabolic_232023.xlsx"))
+```
+
+```{r}
+# convert id and gender to factors
+df <- data
+df$IRB <- as.factor(df$IRB)
+df$gender <- as.factor(df$gender)
+```
+
+### Step 2: descriptive statistics
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
