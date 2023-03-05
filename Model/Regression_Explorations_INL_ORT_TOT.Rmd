@@ -1,0 +1,237 @@
+---
+title: "Regression Explorations"
+author: "Franklin Fuchs"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#library(lme4)
+library(lmerTest)
+library(sjPlot)
+```
+
+# Data Pre-Processing to fit lme4/LmerTest Format
+
+```{r}
+data_cleaned <- read.delim("data_cleaned.txt")
+
+right_eye_df <- data_cleaned[,!grepl("_OS",
+                                     colnames(data_cleaned),
+                                     ignore.case = FALSE)]
+  
+left_eye_df <-  data_cleaned[,!grepl("_OD",
+                                     colnames(data_cleaned),
+                                     ignore.case = FALSE)]
+
+names(right_eye_df) = gsub(pattern = "_OD",
+                           replacement = "",
+                           x = names(right_eye_df))
+
+names(left_eye_df) = gsub(pattern = "_OS",
+                          replacement = "",
+                          x = names(left_eye_df))
+
+right_eye_df$eye <- "right"
+left_eye_df$eye <- "left"
+
+# Fix naming inconsistencies
+names(left_eye_df)[names(left_eye_df) == 'TO_OR'] <- 'TO_ORT'
+names(left_eye_df)[names(left_eye_df) == 'NO_TOS'] <- 'NO_TOT'
+names(left_eye_df)[names(left_eye_df) == 'NO_GCL.IPL.'] <- 'NO_.GCL.IPL.'
+
+merged_df <- rbind(right_eye_df,left_eye_df)
+```
+
+
+# Regressions
+
+### Regressions on INL Outcome
+
+```{r}
+CSF_INL = lmer(CSF_INL ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+SI_INL = lmer(SI_INL ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+SO_INL = lmer(SO_INL ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+NI_INL = lmer(NI_INL ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+NO_INL = lmer(NO_INL ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+II_INL = lmer(II_INL ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+IO_INL = lmer(IO_INL ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+TI_INL = lmer(TI_INL ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+TO_INL = lmer(TO_INL ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+```
+
+### Regressions on ORT Outcome
+
+```{r}
+CSF_ORT = lmer(CSF_ORT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+SI_ORT = lmer(SI_ORT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+SO_ORT = lmer(SO_ORT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+NI_ORT = lmer(NI_ORT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+NO_ORT = lmer(NO_ORT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+II_ORT = lmer(II_ORT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+IO_ORT = lmer(IO_ORT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+TI_ORT = lmer(TI_ORT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+TO_ORT = lmer(TO_ORT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+```
+
+### Regressions on TOT Outcome
+
+```{r}
+CSF_TOT = lmer(CSF_TOT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+SI_TOT = lmer(SI_TOT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+SO_TOT = lmer(SO_TOT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+NI_TOT = lmer(NI_TOT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+NO_TOT = lmer(NO_TOT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+II_TOT = lmer(II_TOT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+IO_TOT = lmer(IO_TOT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+TI_TOT = lmer(TI_TOT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+TO_TOT = lmer(TO_TOT ~  (1 | IRB) + age + SBP + HbA1c + BUN.Cr + Cholesterol + Ketone + Adiponectin + Leptin + RAGE, data = merged_df)
+```
+
+
+# Results
+
+__Summary:__ None of the predictors are statistically significant when applying the bonferroni correction of $\alpha/36 = 0.05/36$ when in the context of 36 models with the outcomes of NFL. CGL-IPL, INL, and ORT. Additionally as a separate possible test, testing only TOT with the less conservative FDR correction also does not yield any significant predictors.
+
+__Interpretation__: In preliminary analysis with bonferroni correction and 36 regressions, HBA1c and Adinopectin seem statistically significant, but only at the $\alpha=0.05$ level, not at the bonferroni corrected alpha level. Making two adjustments by selecting only the TOT sum layer (having thus only 9 regressions) and choosing the less conservative FDR correction yields no significant predictors, although not correcting at all yields cholesterol, Adiponectin, and Leptin to be significant at the $\alpha=0.05$ level for several regions for TOT.
+
+__Next Steps and questions:__ Would it be better to consider variable selection to yield a better outcome, so that predictors are possibly better methodologically selected (after we removed correlated predictors of course)? Is there any way of increasing the sample size here, or having more patient data available? We should stick with FDR correction since it is less conservative.
+
+### INL Table
+
+* '*' => $\alpha = 0.05$
+* '**' => $\alpha = 0.01$
+* '***' => $\alpha = 0.05 / 36$
+
+```{r}
+tab_model(CSF_INL, SI_INL, SO_INL,
+          NI_INL, NO_INL, II_INL,
+          IO_INL, TI_INL, TO_INL,
+          show.ci = FALSE,
+          show.p = TRUE,
+           p.style = "numeric_stars",
+          p.threshold = c(0.05, 0.01, 0.05/36))
+```
+
+### ORT Table
+
+* '*' => $\alpha = 0.05$
+* '**' => $\alpha = 0.01$
+* '***' => $\alpha = 0.05 / 36$
+
+```{r}
+tab_model(CSF_ORT, SI_ORT, SO_ORT,
+          NI_ORT, NO_ORT, II_ORT,
+          IO_ORT, TI_ORT, TO_ORT,
+          show.ci = FALSE,
+          show.p = TRUE,
+           p.style = "numeric_stars",
+          p.threshold = c(0.05, 0.01, 0.05/36))
+```
+
+### TOT Table (using FDR correction)
+
+```{r,}
+tab_model(CSF_TOT, SI_TOT, SO_TOT,
+          NI_TOT, NO_TOT, II_TOT,
+          IO_TOT, TI_TOT, TO_TOT,
+          show.ci = FALSE,
+          show.p = TRUE,
+          p.style = "numeric_stars",
+          p.adjust = c("fdr"))
+```
+
+
+### INL Effect Size Plots
+
+* '*' => $\alpha = 0.05$
+* '**' => $\alpha = 0.01$
+* '***' => $\alpha = 0.05 / 36$
+
+
+```{r, fig.width = 12, fig.height = 8}
+plot_models(title = "INL Thickness Values Effect Size for Each Predictor By Region",
+          CSF_INL, SI_INL, SO_INL,
+          NI_INL, NO_INL, II_INL,
+          IO_INL, TI_INL, TO_INL,
+          dot.size = 1,
+          spacing = 0.5,
+          show.values = TRUE,
+          p.threshold = c(0.05, 0.01, 0.05/36))
+```
+
+* '*' => $\alpha = 0.05$
+* '**' => $\alpha = 0.01$
+* '***' => $\alpha = 0.05 / 36$
+
+```{r}
+plot_models(title = "INL Thickness Values Effect Size for Each Predictor For TO Region",           TO_INL,
+          show.values = TRUE,
+          p.threshold = c(0.05, 0.01, 0.05/36))
+```
+
+### ORT Effect Size Plots
+
+* '*' => $\alpha = 0.05$
+* '**' => $\alpha = 0.01$
+* '***' => $\alpha = 0.05 / 36$
+
+```{r, fig.width = 12, fig.height = 8}
+plot_models(title = "ORT Thickness Values Effect Size for Each Predictor By Region",
+          CSF_ORT, SI_ORT, SO_ORT,
+          NI_ORT, NO_ORT, II_ORT,
+          IO_ORT, TI_ORT, TO_ORT,
+          dot.size = 1,
+          spacing = 0.5,
+          show.values = TRUE,
+          p.threshold = c(0.05, 0.01, 0.05/36))
+```
+
+* '*' => $\alpha = 0.05$
+* '**' => $\alpha = 0.01$
+* '***' => $\alpha = 0.05 / 36$
+
+```{r}
+plot_models(title = "ORT Thickness Values Effect Size for Each Predictor For TO Region",
+          TO_ORT,
+          show.values = TRUE,
+          p.threshold = c(0.05, 0.01, 0.05/36))
+```
+
+
+### TOT Effect Size Plots (using FDR correction)
+
+* '*' => $\alpha = 0.05$
+* '**' => $\alpha = 0.05/9$
+* '***' => $\alpha = 0.001$
+
+```{r, fig.width = 12, fig.height = 8}
+plot_models(title = "TOT Thickness Values Effect Size for Each Predictor By Region",
+          CSF_TOT, SI_TOT, SO_TOT,
+          NI_TOT, NO_TOT, II_TOT,
+          IO_TOT, TI_TOT, TO_TOT,
+          dot.size = 1,
+          spacing = 0.5,
+          show.values = TRUE,
+          p.adjust = c("fdr"))
+```
+
+
+### TOT Effect Size Plots (using Bonferroni correction)
+
+* '*' => $\alpha = 0.05$
+* '**' => $\alpha = 0.05/9$
+* '***' => $\alpha = 0.001$
+
+```{r, fig.width = 12, fig.height = 8}
+plot_models(title = "TOT Thickness Values Effect Size for Each Predictor By Region",
+          CSF_TOT, SI_TOT, SO_TOT,
+          NI_TOT, NO_TOT, II_TOT,
+          IO_TOT, TI_TOT, TO_TOT,
+          dot.size = 1,
+          spacing = 0.5,
+          show.values = TRUE,
+          p.threshold = c(0.05, 0.05/9, 0.001))
+```
+
+
