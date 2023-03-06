@@ -7,6 +7,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+setwd("/Users/jianingyao/Desktop/School/JHU/Year2_Term3/Practice_Statistical_Consulting/Project/statistical_consulting_retina_project")
+file_path = "/Users/jianingyao/Desktop/School/JHU/Year2_Term3/Practice_Statistical_Consulting/Project/statistical_consulting_retina_project"
 library(readxl)
 library(ggplot2)
 library(dplyr)
@@ -18,7 +20,8 @@ library(corrplot)
 ```{r}
 # read data
 # the spreadsheet has 19 metabolic measures and 5 retinal thickness
-data <- as.data.frame(read_excel("./Data/Sachdeva_Final_datasheet_OCT_metabolic_232023.xlsx"))
+data <- as.data.frame(read_excel("/Users/jianingyao/Desktop/School/JHU/Year2_Term3/Practice_Statistical_Consulting/Project/statistical_consulting_retina_project/Data/Sachdeva_Final_datasheet_OCT_metabolic_232023.xlsx"))
+
 ```
 
 ```{r}
@@ -26,7 +29,9 @@ data <- as.data.frame(read_excel("./Data/Sachdeva_Final_datasheet_OCT_metabolic_
 df <- data
 df$IRB <- as.factor(df$IRB)
 df$gender <- as.factor(df$gender)
-levels(df$gender) <- c("female", "male")
+levels(df$gender) <- c("male", "female")
+df <- mutate(df, group = ifelse(HbA1c > 6.4, "DM", ifelse(HbA1c < 5.7, "Control", "Prediabetes")))
+df$group <- as.factor(df$group)
 ```
 
 ### Step 2: descriptive statistics
@@ -37,15 +42,41 @@ table(df$gender)/nrow(df)
 ```
 
 
+```{r}
+# diabetes groups
+table(df$group)
+table(df$group)/nrow(df)
+```
+
+
 ## table 1: mean and sd of metabolic measures and retinal measures
 ```{r}
-cols_ind <- c(4:112)
+cols_ind <- c(2, 4:112)
+min_data <- apply(df[, cols_ind], 2, function(x) min(x, na.rm = TRUE))
+max_data <- apply(df[, cols_ind], 2, function(x) max(x, na.rm = TRUE))
 median_data <- apply(df[, cols_ind], 2, function(x) median(x, na.rm = TRUE))
 mean_data <- apply(df[, cols_ind], 2, function(x) mean(x, na.rm = TRUE))
 sd_data <- apply(df[, cols_ind], 2, function(x) sd(x, na.rm = TRUE))
-summary <- cbind(median_data, mean_data, sd_data)
-colnames(summary) <- c("Median", "Mean", "SD")
+n_data <- apply(df[, cols_ind], 2, function(x) sum(!is.na(x)))
+summary <- cbind(min_data, max_data, median_data, mean_data, sd_data, n_data)
+colnames(summary) <- c("Min", "Max", "Median", "Mean", "SD", "N")
 round(summary,2)
+summary <- round(summary,2)
+write.csv(summary, "summary.csv", row.names = TRUE, col.names = TRUE)
+```
+
+
+## summary by groups
+
+```{r}
+cols_ind <- c(4:113)
+summary_group <- df[cols_ind] %>% 
+  group_by(group) %>%
+    summarize_all(list(median = ~ median(., na.rm = TRUE), 
+                     mean = ~ mean(., na.rm = TRUE), 
+                     sd = ~ sd(., na.rm = TRUE)))
+as.data.frame(t(summary_group))
+write.csv(t(summary_group), "summary_group.csv", row.names = TRUE, col.names = TRUE)
 ```
 
 
@@ -59,6 +90,38 @@ for (col in indep_list) {
 }
 
 ```
+
+
+## ANOVA tests on metabolic measures
+```{r}
+# Create an empty list to store the ANOVA test results
+anova_results <- list()
+p_values <- as.data.frame(cbind(indep_list, rep(NA, length(indep_list))))
+colnames(p_values) <- c("Met", "p-value")
+# Loop through each column in the vector and perform the ANOVA test
+for (col in indep_list) {
+  my_formula <- formula(paste(col, " ~ group"))
+  anova_results[[col]] <- aov(my_formula, data = df)
+}
+
+# Extract the relevant information from the ANOVA test results
+for (col in indep_list) {
+  anova_result <- anova_results[[col]]
+  print(paste("Column:", col))
+  print(summary(anova_result))
+  p_values[p_values$Met==col, "p-value"] <- summary(anova_result)[[1]][["Pr(>F)"]][[1]]
+}
+
+print(p_values)
+
+write.csv(p_values, "ANOVA_met_pValues.csv", row.names = TRUE, col.names = TRUE)
+
+```
+
+
+
+
+Important predictors: Adiponectin, Leptin, Cholesterol, HbA1c, gender, age
 
 
 ## replace missing values in metabolic measures with median
@@ -84,6 +147,14 @@ met_cor <- cor(df.imp[met_list], use = "pairwise.complete.obs")
 corrplot(met_cor, type = "upper", method = "circle")
 ```
 
+## Selected predictors heatmap
+
+```{r}
+predictors <- c("age","SBP","HbA1c","BUN/Cr","Cholesterol","Ketone","Adiponectin","Leptin","RAGE")
+met_cor <- cor(df.imp[predictors], use = "pairwise.complete.obs")
+corrplot(met_cor, type = "upper", method = "circle")
+```
+
 
 ## Correlation heatmaps for retinal measures by eye
 ```{r}
@@ -103,9 +174,155 @@ corrplot(OS_cor, type = "upper", method = "circle", tl.cex = 0.5)
 
 ```{r}
 # save cleaned dataset
-write.table(df.imp, "./Data/data_cleaned.txt", sep = "\t", row.names = FALSE, col.names = TRUE)
+write.table(df.imp, "data_cleaned.txt", sep = "\t", row.names = FALSE, col.names = TRUE)
 ```
 
+
+## make a long table from a wide one
+
+```{r}
+right_eye_df <- df.imp[,!grepl("_OS",colnames(df.imp),ignore.case = FALSE)]
+  
+left_eye_df <-  df.imp[,!grepl("_OD",colnames(df.imp),ignore.case = FALSE)]
+
+names(right_eye_df) = gsub(pattern = "_OD",
+                           replacement = "",
+                           x = names(right_eye_df))
+
+names(left_eye_df) = gsub(pattern = "_OS",
+                          replacement = "",
+                          x = names(left_eye_df))
+
+right_eye_df$eye <- "right"
+left_eye_df$eye <- "left"
+
+# Fix naming inconsistencies
+names(left_eye_df)[names(left_eye_df) == 'TO_OR'] <- 'TO_ORT'
+names(left_eye_df)[names(left_eye_df) == 'NO_TOS'] <- 'NO_TOT'
+names(left_eye_df)[names(left_eye_df) == 'NO_GCL-IPL)'] <- 'NO_(GCL-IPL)'
+
+df.imp.long <- rbind(right_eye_df,left_eye_df)
+```
+
+
+
+```{r}
+# save long file
+write.table(df.imp.long, "data_cleaned_long.txt", sep = "\t", row.names = FALSE, col.names = TRUE)
+```
+
+
+## histograms and descriptive analysis for total retinal thickness in 9 regions (for both eyes)
+
+
+```{r}
+ret_list <- seq(23, length = 9, by = 5)
+for (col in colnames(df.imp.long[ret_list])) {
+  hist(df.imp.long[[col]], xlab = paste(col), main = paste("Histogram of", col))
+}
+```
+
+
+```{r}
+cols_ind <- c(23:67)
+min_data <- apply(df.imp.long[, cols_ind], 2, function(x) min(x, na.rm = TRUE))
+max_data <- apply(df.imp.long[, cols_ind], 2, function(x) max(x, na.rm = TRUE))
+median_data <- apply(df.imp.long[, cols_ind], 2, function(x) median(x, na.rm = TRUE))
+mean_data <- apply(df.imp.long[, cols_ind], 2, function(x) mean(x, na.rm = TRUE))
+sd_data <- apply(df.imp.long[, cols_ind], 2, function(x) sd(x, na.rm = TRUE))
+n_data <- apply(df.imp.long[, cols_ind], 2, function(x) sum(!is.na(x)))
+summary_long <- cbind(min_data, max_data, median_data, mean_data, sd_data, n_data)
+colnames(summary_long) <- c("Min", "Max", "Median", "Mean", "SD", "N")
+round(summary_long,2)
+write.csv(round(summary_long,2), "summary_long.csv", row.names = TRUE, col.names = TRUE)
+```
+
+
+```{r}
+cols_ind <- c(23:68)
+summary_long_group <- df.imp.long[cols_ind] %>% 
+  group_by(group) %>%
+    summarize_all(list(median = ~ median(., na.rm = TRUE), 
+                     mean = ~ mean(., na.rm = TRUE), 
+                     sd = ~ sd(., na.rm = TRUE)))
+summary_long_group
+write.csv(as.data.frame(t(summary_long_group)), "summary_long_group.csv", row.names = TRUE, col.names = TRUE)
+
+```
+
+
+```{r}
+cols_ind <- seq(23, length = 9, by = 5)
+min_data <- apply(df.imp.long[, cols_ind], 2, function(x) min(x, na.rm = TRUE))
+max_data <- apply(df.imp.long[, cols_ind], 2, function(x) max(x, na.rm = TRUE))
+median_data <- apply(df.imp.long[, cols_ind], 2, function(x) median(x, na.rm = TRUE))
+mean_data <- apply(df.imp.long[, cols_ind], 2, function(x) mean(x, na.rm = TRUE))
+sd_data <- apply(df.imp.long[, cols_ind], 2, function(x) sd(x, na.rm = TRUE))
+n_data <- apply(df.imp.long[, cols_ind], 2, function(x) sum(!is.na(x)))
+summary_tot <- cbind(min_data, max_data, median_data, mean_data, sd_data, n_data)
+colnames(summary_tot) <- c("Min", "Max", "Median", "Mean", "SD", "N")
+round(summary_tot,2)
+write.csv(round(summary_tot,2), "summary_tot.csv", row.names = TRUE, col.names = TRUE)
+
+```
+
+
+## ANOVA test for retinal measures
+
+```{r}
+# Create an empty list to store the ANOVA test results
+anova_results <- list()
+cols_ind <- c(23:67)
+ret_list <- colnames(df.imp.long)[cols_ind]
+p_values <- as.data.frame(cbind(ret_list, rep(NA, length(ret_list))))
+colnames(p_values) <- c("Met", "p-value")
+# Loop through each column in the vector and perform the ANOVA test
+for (col in ret_list) {
+  my_formula <- formula(paste("`", col, "`", " ~ group", sep = ""))
+  anova_results[[col]] <- aov(my_formula, data = df.imp.long)
+}
+
+# Extract the relevant information from the ANOVA test results
+for (col in ret_list) {
+  anova_result <- anova_results[[col]]
+  print(paste("Column:", col))
+  print(summary(anova_result))
+  p_values[p_values$Met==col, "p-value"] <- summary(anova_result)[[1]][["Pr(>F)"]][[1]]
+}
+
+print(p_values)
+
+write.csv(p_values, "ANOVA_ret_pValues.csv", row.names = TRUE, col.names = TRUE)
+```
+
+
+## total retinal thickness
+
+```{r}
+# Create an empty list to store the ANOVA test results
+anova_results <- list()
+cols_ind <- seq(23, length = 9, by = 5)
+ret_list <- colnames(df.imp.long)[cols_ind]
+p_values <- as.data.frame(cbind(ret_list, rep(NA, length(ret_list))))
+colnames(p_values) <- c("Met", "p-value")
+# Loop through each column in the vector and perform the ANOVA test
+for (col in ret_list) {
+  my_formula <- formula(paste("`", col, "`", " ~ group", sep = ""))
+  anova_results[[col]] <- aov(my_formula, data = df.imp.long)
+}
+
+# Extract the relevant information from the ANOVA test results
+for (col in ret_list) {
+  anova_result <- anova_results[[col]]
+  print(paste("Column:", col))
+  print(summary(anova_result))
+  p_values[p_values$Met==col, "p-value"] <- summary(anova_result)[[1]][["Pr(>F)"]][[1]]
+}
+
+print(p_values)
+
+write.csv(p_values, "ANOVA_tot_pValues.csv", row.names = TRUE, col.names = TRUE)
+```
 
 
 
@@ -120,14 +337,6 @@ TODO:
 
 Questions: 
 1. gender code: which is female vs male
-
-
-
-
-
-
-
-
 
 
 
