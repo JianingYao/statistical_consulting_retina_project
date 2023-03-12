@@ -14,6 +14,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(corrplot)
+library(VIM)
 ```
 
 ### Step 1: read data and clean
@@ -26,67 +27,116 @@ data <- as.data.frame(read_excel("/Users/jianingyao/Desktop/School/JHU/Year2_Ter
 
 ```{r}
 # convert id and gender to factors
-df <- data
-df$IRB <- as.factor(df$IRB)
-df$gender <- as.factor(df$gender)
-levels(df$gender) <- c("male", "female")
-df <- mutate(df, group = ifelse(HbA1c > 6.4, "DM", ifelse(HbA1c < 5.7, "Control", "Prediabetes")))
-df$group <- as.factor(df$group)
+data$IRB <- as.factor(data$IRB)
+data$gender <- as.factor(data$gender)
+levels(data$gender) <- c("male", "female")
+data <- mutate(data, group = ifelse(HbA1c > 6.4, "DM", ifelse(HbA1c < 5.7, "Control", "Prediabetes")))
+data$group <- as.factor(data$group)
 ```
 
 ### Step 2: descriptive statistics
 ```{r}
 # gender 
-table(df$gender)
-table(df$gender)/nrow(df)
+table(data$gender)
+table(data$gender)/nrow(data)
 ```
 
 
 ```{r}
 # diabetes groups
-table(df$group)
-table(df$group)/nrow(df)
+table(data$group)
+table(data$group)/nrow(data)
 ```
 
 
-## table 1: mean and sd of metabolic measures and retinal measures
+## table 1: mean and sd of metabolic measures and retinal measures before imputation
 ```{r}
 cols_ind <- c(2, 4:112)
-min_data <- apply(df[, cols_ind], 2, function(x) min(x, na.rm = TRUE))
-max_data <- apply(df[, cols_ind], 2, function(x) max(x, na.rm = TRUE))
-median_data <- apply(df[, cols_ind], 2, function(x) median(x, na.rm = TRUE))
-mean_data <- apply(df[, cols_ind], 2, function(x) mean(x, na.rm = TRUE))
-sd_data <- apply(df[, cols_ind], 2, function(x) sd(x, na.rm = TRUE))
-n_data <- apply(df[, cols_ind], 2, function(x) sum(!is.na(x)))
+min_data <- apply(data[, cols_ind], 2, function(x) min(x, na.rm = TRUE))
+max_data <- apply(data[, cols_ind], 2, function(x) max(x, na.rm = TRUE))
+median_data <- apply(data[, cols_ind], 2, function(x) median(x, na.rm = TRUE))
+mean_data <- apply(data[, cols_ind], 2, function(x) mean(x, na.rm = TRUE))
+sd_data <- apply(data[, cols_ind], 2, function(x) sd(x, na.rm = TRUE))
+n_data <- apply(data[, cols_ind], 2, function(x) sum(!is.na(x)))
 summary <- cbind(min_data, max_data, median_data, mean_data, sd_data, n_data)
 colnames(summary) <- c("Min", "Max", "Median", "Mean", "SD", "N")
 round(summary,2)
 summary <- round(summary,2)
-write.csv(summary, "summary.csv", row.names = TRUE, col.names = TRUE)
+write.csv(summary, "summary_beforeImp.csv", row.names = TRUE, col.names = TRUE)
 ```
 
 
-## summary by groups
+## summary by groups before imputation
 
 ```{r}
 cols_ind <- c(4:113)
-summary_group <- df[cols_ind] %>% 
+summary_group <- data[cols_ind] %>% 
   group_by(group) %>%
     summarize_all(list(median = ~ median(., na.rm = TRUE), 
                      mean = ~ mean(., na.rm = TRUE), 
                      sd = ~ sd(., na.rm = TRUE)))
 as.data.frame(t(summary_group))
-write.csv(t(summary_group), "summary_group.csv", row.names = TRUE, col.names = TRUE)
+write.csv(t(summary_group), "summary_group_beforeImp.csv", row.names = TRUE, col.names = TRUE)
 ```
+
+
+## replace missing values in metabolic measures with median
+```{r}
+met_list <- c("heart_rate","MAP","SBP","BMI","HbA1c","BUN","Cr","BUN/Cr","HDL","LDL","Triglycerides","Cholesterol","NEFA","Glucose","Ketone","Insulin","Adiponectin","Leptin","RAGE")
+data.median <- data
+for (col in met_list) {
+  data.median[is.na(data.median[[col]]), col] <- median(data.median[[col]], na.rm = TRUE)
+}
+```
+
+
+## replace missing values in metabolic and retinal measures by knn
+```{r}
+# Perform KNN imputation with default settings
+df.imp <- kNN(data)
+df.imp <- df.imp[1:113]
+```
+
+
+## table 1: mean and sd of metabolic measures and retinal measures after imputation
+```{r}
+cols_ind <- c(2, 4:112)
+min_data <- apply(df.imp[, cols_ind], 2, function(x) min(x, na.rm = TRUE))
+max_data <- apply(df.imp[, cols_ind], 2, function(x) max(x, na.rm = TRUE))
+median_data <- apply(df.imp[, cols_ind], 2, function(x) median(x, na.rm = TRUE))
+mean_data <- apply(df.imp[, cols_ind], 2, function(x) mean(x, na.rm = TRUE))
+sd_data <- apply(df.imp[, cols_ind], 2, function(x) sd(x, na.rm = TRUE))
+n_data <- apply(df.imp[, cols_ind], 2, function(x) sum(!is.na(x)))
+summary <- cbind(min_data, max_data, median_data, mean_data, sd_data, n_data)
+colnames(summary) <- c("Min", "Max", "Median", "Mean", "SD", "N")
+round(summary,2)
+summary <- round(summary,2)
+write.csv(summary, "summary_afterImp.csv", row.names = TRUE, col.names = TRUE)
+```
+
+
+## summary by groups after imputation
+
+```{r}
+cols_ind <- c(4:113)
+summary_group <- df.imp[cols_ind] %>% 
+  group_by(group) %>%
+    summarize_all(list(median = ~ median(., na.rm = TRUE), 
+                     mean = ~ mean(., na.rm = TRUE), 
+                     sd = ~ sd(., na.rm = TRUE)))
+as.data.frame(t(summary_group))
+write.csv(t(summary_group), "summary_group_afterImp.csv", row.names = TRUE, col.names = TRUE)
+```
+
 
 
 ## histograms of independent variables (age + metabolic measures)
 
 ```{r}
-colnames(df)
+colnames(df.imp)
 indep_list <- c("age", "heart_rate","MAP","SBP","BMI","HbA1c","BUN","Cr","BUN/Cr","HDL","LDL","Triglycerides","Cholesterol","NEFA","Glucose","Ketone","Insulin","Adiponectin","Leptin","RAGE")
 for (col in indep_list) {
-  hist(df[[col]], xlab = paste(col), main = paste("Histogram of", col))
+  hist(df.imp[[col]], xlab = paste(col), main = paste("Histogram of", col))
 }
 
 ```
@@ -101,7 +151,7 @@ colnames(p_values) <- c("Met", "p-value")
 # Loop through each column in the vector and perform the ANOVA test
 for (col in indep_list) {
   my_formula <- formula(paste(col, " ~ group"))
-  anova_results[[col]] <- aov(my_formula, data = df)
+  anova_results[[col]] <- aov(my_formula, data = df.imp)
 }
 
 # Extract the relevant information from the ANOVA test results
@@ -124,17 +174,6 @@ write.csv(p_values, "ANOVA_met_pValues.csv", row.names = TRUE, col.names = TRUE)
 Important predictors: Adiponectin, Leptin, Cholesterol, HbA1c, gender, age
 
 
-## replace missing values in metabolic measures with median
-```{r}
-met_list <- c("heart_rate","MAP","SBP","BMI","HbA1c","BUN","Cr","BUN/Cr","HDL","LDL","Triglycerides","Cholesterol","NEFA","Glucose","Ketone","Insulin","Adiponectin","Leptin","RAGE")
-df.imp <- df
-for (col in met_list) {
-  df.imp[is.na(df.imp[[col]]), col] <- median(df.imp[[col]], na.rm = TRUE)
-}
-```
-
-
-
 
 ## Pairs plot, correlations, heatmap of metabolic measures
 
@@ -143,15 +182,15 @@ pairs(df.imp[met_list])
 ```
 
 ```{r}
-met_cor <- cor(df.imp[met_list], use = "pairwise.complete.obs")
+met_cor <- cor(df.imp[met_list])
 corrplot(met_cor, type = "upper", method = "circle")
 ```
 
 ## Selected predictors heatmap
 
 ```{r}
-predictors <- c("age","SBP","HbA1c","BUN/Cr","Cholesterol","Ketone","Adiponectin","Leptin","RAGE")
-met_cor <- cor(df.imp[predictors], use = "pairwise.complete.obs")
+predictors <- c("age","SBP","HbA1c","BUN/Cr","Cholesterol","Ketone","Adiponectin","Leptin","RAGE", "NEFA")
+met_cor <- cor(df.imp[predictors])
 corrplot(met_cor, type = "upper", method = "circle")
 ```
 
@@ -160,14 +199,14 @@ corrplot(met_cor, type = "upper", method = "circle")
 ```{r}
 # right eye
 OD_list <- c(23:67)
-OD_cor <- cor(df.imp[OD_list], use = "pairwise.complete.obs")
+OD_cor <- cor(df.imp[OD_list])
 corrplot(OD_cor, type = "upper", method = "circle", tl.cex = 0.5)
 ```
 
 ```{r}
 # left eye
 OS_list <- c(68:112)
-OS_cor <- cor(df.imp[OS_list], use = "pairwise.complete.obs")
+OS_cor <- cor(df.imp[OS_list])
 corrplot(OS_cor, type = "upper", method = "circle", tl.cex = 0.5)
 ```
 
@@ -332,11 +371,6 @@ TODO:
 3. missing values for metabolic measures (REPLACE WITH MEDIAN FOR NOW)
 4. A heatmap showing correlations between selected metabolic parameters and retinal thickness values in each of the anatomical locations to select predictors.  
 
-
-
-
-Questions: 
-1. gender code: which is female vs male
 
 
 
