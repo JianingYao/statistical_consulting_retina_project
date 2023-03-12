@@ -8,16 +8,16 @@ dat <- data %>% select(IRB, CSF_NFL_OD, CSF_NFL_OS, age, gender, BMI, BUN.Cr, Ad
   pivot_longer(cols=CSF_NFL_OD:CSF_NFL_OS, names_to="CSF_NFL", values_to="Measure")
 
 library(lmerTest)
-m1 <- lmer(Measure~(1|IRB)+age+gender+BMI+BUN.Cr+Adiponectin+Insulin+Leptin, data=dat)
+m1 <- lmer(Measure~(1|IRB)+age+gender+BMI+BUN.Cr+Adiponectin+Insulin+Leptin+NEFA, data=dat)
 summary(m1)
 
 # Select predictors
-newlist <- c("age","SBP","HbA1c","BUN.Cr","Cholesterol","Ketone","Adiponectin","Leptin","RAGE")
+newlist <- c("age","SBP","HbA1c","BUN.Cr","Cholesterol","Ketone","Adiponectin","Leptin","RAGE","NEFA")
 met_cor <- cor(data[newlist], use = "pairwise.complete.obs")
 corrplot(met_cor, type = "upper", method = "circle")
 
 # Run regressions for NFL
-preds <- c("IRB","age","gender","SBP","HbA1c","BUN.Cr","Cholesterol","Ketone","Adiponectin","Leptin","RAGE")
+preds <- c("IRB","age","gender","SBP","HbA1c","BUN.Cr","Cholesterol","Ketone","Adiponectin","Leptin","RAGE","NEFA")
 cols <- c(1:22, grep("NFL", colnames(data)))
 regdata <- data[,cols]
 
@@ -31,7 +31,7 @@ for (i in 1:length(locs)){
   datal[[i]] <- pivot_longer(dataw, cols=c(tail(colnames(dataw),2)[1],tail(colnames(dataw),2)[2]), 
                       names_to=paste("NFL", locs[i], sep="_"), values_to="Measure") %>% drop_na()
   library(lmerTest)
-  model_NFL[[i]] <- lmer(Measure~(1|IRB)+age+gender+SBP+HbA1c+BUN.Cr+Cholesterol+Ketone+Adiponectin+Leptin+RAGE, 
+  model_NFL[[i]] <- lmer(Measure~(1|IRB)+age+gender+SBP+HbA1c+BUN.Cr+Cholesterol+Ketone+Adiponectin+Leptin+RAGE+NEFA, 
                          data=datal[[i]])
   CI_NFL[[i]] <- round(confint(model_NFL[[i]]),3)
 }
@@ -50,7 +50,7 @@ for (i in 1:length(locs)){
   datal2[[i]] <- pivot_longer(dataw, cols=c(tail(colnames(dataw),2)[1],tail(colnames(dataw),2)[2]), 
                              names_to=paste("GCL_IPL", locs[i], sep="_"), values_to="Measure") %>% drop_na()
   library(lmerTest)
-  model_GI[[i]] <- lmer(Measure~(1|IRB)+age+gender+SBP+HbA1c+BUN.Cr+Cholesterol+Ketone+Adiponectin+Leptin+RAGE, 
+  model_GI[[i]] <- lmer(Measure~(1|IRB)+age+gender+SBP+HbA1c+BUN.Cr+Cholesterol+Ketone+Adiponectin+Leptin+RAGE+NEFA, 
                          data=datal2[[i]])
   CI_GI[[i]] <- round(confint(model_GI[[i]]),3)
 }
